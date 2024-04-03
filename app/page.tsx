@@ -102,7 +102,7 @@ export default function Home() {
         div2.current.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [handleMouseMove, isDragging]);
+  }, [isDragging]);
 
   const handleMouseDown = () => {
     setIsDragging(true);
