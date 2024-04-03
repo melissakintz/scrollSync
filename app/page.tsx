@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useScrollSyncWrap } from "@/app/components/ScrollSync";
+import { useScrollSync } from "@/app/components/useScrollSync";
 
 const boucle = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 const THUMBD_WIDTH = 55;
@@ -8,7 +8,7 @@ const INTEREST_POINTS = [5, 10, 15];
 export default function Home() {
   const div1 = useRef<HTMLDivElement>(null);
   const div2 = useRef<HTMLDivElement>(null);
-  useScrollSyncWrap([div1, div2]);
+  useScrollSync([div1, div2]);
 
   const thumbRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -16,33 +16,18 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [thumbLeftPosition, setThumbLeftPosition] = useState(0);
   const [markerPositions, setMarkerPositions] = useState<{ [key: string]: number }>({});
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging && thumbRef.current && trackRef.current) {
-      const rect = trackRef.current.getBoundingClientRect();
-      const trackWidth = rect.width;
-      const thumbWidth = THUMBD_WIDTH;
-      const mouseX = e.pageX - rect.left - (thumbWidth / 2); // Adjust for thumb's half width
-      let position = mouseX;
 
-      // Ensure position stays within bounds
-      position = Math.max(0, Math.min(position, trackWidth - thumbWidth));
 
-      // Convert position to percentage
-      const percentage = (position / (trackWidth - thumbWidth)) * 100;
-      setThumbLeftPosition(position);
+  const handleScroll = (e: any) => {
+    const scrollLeft = e?.target?.scrollLeft;
+    const scrollWidth = e.target!.scrollWidth - e.target!.clientWidth;
 
-      // Convert percentage to scrollLeft value
-      const scrollLeft = (percentage / 100) * (div1.current!.scrollWidth - div1.current!.clientWidth);
-      div1.current!.scrollLeft = scrollLeft;
-      div2.current!.scrollLeft = scrollLeft;
+    if (div1?.current) {
+      div1.current.scrollLeft = scrollLeft;
     }
-  };
-
-
-  const handleTrackScroll = () => {
-    const scrollLeft = div1.current!.scrollLeft;
-    const scrollWidth = div1.current!.scrollWidth - div1.current!.clientWidth;
-
+    if (div2?.current) {
+      div2.current.scrollLeft = scrollLeft;
+    }
     const clientWidth = trackRef?.current?.clientWidth;
     if (clientWidth) {
       let position = (+scrollLeft / +scrollWidth) * clientWidth;
@@ -56,13 +41,12 @@ export default function Home() {
 
   useEffect(() => {
     // Calcul des positions des marqueurs
-    const divPositions = INTEREST_POINTS.reduce<{ [key: string]: number }>((acc, el, index) => {
+    const divPositions = INTEREST_POINTS.reduce<{ [key: string]: number }>((acc, el) => {
       const elRef = document?.getElementById(el?.toString());
 
       if (elRef) {
         const rect = elRef.getBoundingClientRect();
-        const position = (rect.left - div1.current!.getBoundingClientRect().left) / div1.current!.scrollWidth * 100;
-        acc[elRef.textContent!] = position;
+        acc[elRef.textContent!] = (rect.left - div1.current!.getBoundingClientRect().left) / div1.current!.scrollWidth * 100;
       }
       return acc;
     }, {});
@@ -74,23 +58,51 @@ export default function Home() {
 
 
   useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging && thumbRef.current && trackRef.current) {
+        const rect = trackRef.current.getBoundingClientRect();
+        const trackWidth = rect.width;
+        const thumbWidth = THUMBD_WIDTH;
+        let position = e.pageX - rect.left - (thumbWidth / 2); // Adjust for thumb's half width;
+
+        // Ensure position stays within bounds
+        position = Math.max(0, Math.min(position, trackWidth - thumbWidth));
+
+        // Convert position to percentage
+        const percentage = (position / (trackWidth - thumbWidth)) * 100;
+        setThumbLeftPosition(position);
+
+        // Convert percentage to scrollLeft value
+        const scrollLeft = (percentage / 100) * (div1.current!.scrollWidth - div1.current!.clientWidth);
+        div1.current!.scrollLeft = scrollLeft;
+        div2.current!.scrollLeft = scrollLeft;
+      }
+    };
+
     if (isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     }
 
     if (div1.current) {
-      div1.current.addEventListener("scroll", handleTrackScroll);
+      div1.current.addEventListener("scroll", handleScroll);
+    }
+    if (div2.current) {
+      div2.current.addEventListener("scroll", handleScroll);
     }
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+
       if (div1.current) {
-        div1.current.removeEventListener("scroll", handleTrackScroll);
+        div1.current.removeEventListener("scroll", handleScroll);
+      }
+      if (div2.current) {
+        div2.current.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [isDragging]);
+  }, [handleMouseMove, isDragging]);
 
   const handleMouseDown = () => {
     setIsDragging(true);
@@ -98,18 +110,18 @@ export default function Home() {
 
   return (
     <main className="h-screen w-screen space-y-2">
-      <div className={"flex overflow-x-scroll bg-red-50 w-full"} ref={div1}>
+      <div className={"flex overflow-x-scroll bg-red-50 w-full"} ref={div1} onScroll={handleScroll}>
         {boucle?.map((el) => (
           <div key={el} className={"border border-teal-500 h-10"}>
-            <p className={"min-w-96"}>{el === 13 || el === 5 ? el : null} :)</p>
+            <p className={"min-w-96"}>{el}</p>
           </div>
         ))}
       </div>
 
-      <div className={"flex overflow-x-scroll bg-yellow-50 w-full"} ref={div2}>
+      <div className={"flex overflow-x-scroll bg-yellow-50 w-full"} ref={div2} onScroll={handleScroll}>
         {boucle?.map((el) => (
           <div key={el} className={"border border-teal-500 h-10"} id={el?.toString()}>
-            <p className={"min-w-96"}>{el} :)</p>
+            <p className={"min-w-96"}>{el}</p>
           </div>
         ))}
       </div>

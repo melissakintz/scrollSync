@@ -1,14 +1,11 @@
 "use client";
 
-import { RefObject, useCallback, useEffect, useState } from "react";
+import { RefObject, useEffect } from "react";
 
-export const useScrollSync = () => {
-  const [panes, setPanes] = useState<HTMLDivElement[]>([]);
+export const useScrollSyncStore = () => {
+  const panes: HTMLDivElement[] = [];
 
-  const findPane = useCallback(
-    (node: HTMLDivElement) => panes.find((pane) => pane === node),
-    [panes]
-  );
+  const findPane = (node: HTMLDivElement) => panes.find((pane) => pane === node);
 
 
   const registerPane = (node: HTMLDivElement) => {
@@ -88,13 +85,13 @@ export const useScrollSync = () => {
 
   };
   return {
-    registerPane, unregisterPane, handlePaneScroll
+    registerPane, unregisterPane
   };
 };
 
 
-export const useScrollSyncWrap = (nodeRefs: RefObject<HTMLDivElement>[]) => {
-  const { registerPane, unregisterPane, handlePaneScroll } = useScrollSync(
+export const useScrollSync = (nodeRefs: RefObject<HTMLDivElement>[]) => {
+  const { registerPane, unregisterPane } = useScrollSyncStore(
   );
 
   useEffect(() => {
